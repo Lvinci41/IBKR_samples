@@ -1,0 +1,50 @@
+from ibapi import wrapper
+from ibapi.client import EClient
+from ibapi.utils import iswrapper 
+from ibapi.common import *
+import math
+import os.path
+from os import path
+from threading import Timer
+
+class TestApp(wrapper.EWrapper, EClient):
+    posns = []
+    fname = 'fname.txt'
+    def __init__(self):
+        wrapper.EWrapper.__init__(self)
+        EClient.__init__(self, wrapper=self)
+
+    @iswrapper
+    def nextValidId(self, orderId:int):
+        print("setting nextValidOrderId: %d", orderId)
+        self.nextValidOrderId = orderId
+        file = open("orders.txt","w")
+        file.write(str(orderId))
+        file.close()
+        # here is where you start using api
+        self.reqAccountSummary(9002, "All", "$LEDGER")
+
+    @iswrapper
+    def accountSummary(self, reqId:int, account:str, tag:str, value:str, currency:str):
+        if tag == "CashBalance": 
+            with open('Balance.txt', 'a+') as file: #append, create if doesn't exist
+                file.write("%s, %s, %s, %s\n" % (account, tag, value, currency))
+
+    @iswrapper
+    def accountSummaryEnd(self, reqId:int):
+        self.disconnect()
+    
+    def stop(self):
+        self.reqAccountUpdates(False, "")
+        self.done = True
+        self.disconnect()
+   
+#def main():
+#    app = TestApp()
+#    app.connect("127.0.0.1", 7496, clientId=123)
+#    app.run()
+
+
+app = TestApp()
+app.connect("127.0.0.1", 7497, 123)
+app.run()
